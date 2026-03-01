@@ -1413,8 +1413,25 @@ class CalligraphyCanvasView extends ItemView {
 			this.canvasMode = canvasData.canvasMode || 'light';
 			this.zoom = canvasData.zoom || 1;
 
-			// Redraw loaded canvas
-			this.redrawCanvas();
+			// Clear canvas
+			this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+			// Redraw all strokes
+			for (let stroke of this.strokes) {
+				if (stroke && stroke.points && stroke.points.length > 0) {
+					this.redrawStroke(stroke);
+				}
+			}
+
+			// Redraw text objects
+			if (this.textObjects && this.textObjects.length > 0) {
+				this.renderTextObjects();
+			}
+
+			// Reset history and save this state
+			this.history = [];
+			this.historyStep = -1;
+			this.saveState();
 
 			console.log(`Loaded canvas: "${name}" - ${this.strokes.length} strokes, ${this.textObjects.length} text objects`);
 			return true;
@@ -2960,7 +2977,6 @@ class LoadCanvasModal extends Modal {
 			item.style.marginBottom = '8px';
 			item.style.border = '1px solid var(--background-modifier-border)';
 			item.style.borderRadius = '4px';
-			item.style.cursor = 'pointer';
 
 			const nameEl = item.createEl('div', { text: name });
 			nameEl.style.fontWeight = 'bold';
