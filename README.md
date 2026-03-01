@@ -45,7 +45,7 @@ Transform your Obsidian vault into a handwriting canvas with realistic pen types
 ### 1. Installation
 
 #### From GitHub Releases (Recommended)
-1. Download the latest release from [GitHub Releases](https://github.com/YOUR_USERNAME/obsidian-handwrite/releases)
+1. Download the latest release from [GitHub Releases](https://github.com/SattaRIP/obsidian-handwrite/releases)
 2. Extract `main.js`, `styles.css`, `manifest.json` to:
    ```
    <your-vault>/.obsidian/plugins/handwrite/
@@ -347,8 +347,8 @@ MIT License - See [LICENSE](LICENSE) file
 ## 🐛 Support & Issues
 
 - **Documentation**: Check README.md and setup guides
-- **Issues**: Report bugs on [GitHub Issues](https://github.com/YOUR_USERNAME/obsidian-handwrite/issues)
-- **Discussions**: Ask questions in [GitHub Discussions](https://github.com/YOUR_USERNAME/obsidian-handwrite/discussions)
+- **Issues**: Report bugs on [GitHub Issues](https://github.com/SattaRIP/obsidian-handwrite/issues)
+- **Discussions**: Ask questions in [GitHub Discussions](https://github.com/SattaRIP/obsidian-handwrite/discussions)
 
 ## 🌟 Support This Plugin
 
@@ -356,7 +356,7 @@ If you find this plugin useful:
 - ⭐ Star the repository on GitHub
 - 🐛 Report bugs and suggest features
 - 📝 Share your handwriting workflow
-- ☕ [Buy me a coffee](https://buymeacoffee.com/YOUR_USERNAME) (optional)
+- ☕ [Buy me a coffee](https://buymeacoffee.com/SattaRIP) (optional)
 
 ---
 
