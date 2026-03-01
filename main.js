@@ -2192,12 +2192,12 @@ class CalligraphyCanvasView extends ItemView {
 			if (!menu.contains(e.target)) {
 				console.log('Closing menu - clicked outside');
 				this.hideContextMenu();
-				document.removeEventListener('pointerdown', closeHandler);
+				document.removeEventListener('click', closeHandler);
 			}
 		};
 		setTimeout(() => {
 			console.log('Adding closeHandler to document');
-			document.addEventListener('pointerdown', closeHandler);
+			document.addEventListener('click', closeHandler);
 		}, 10);
 	}
 
