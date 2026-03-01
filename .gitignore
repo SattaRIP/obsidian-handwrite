@@ -1,0 +1,20 @@
+# Obsidian plugin data
+data.json
+
+# Node modules (if you add build tools later)
+node_modules/
+
+# Build artifacts
+*.zip
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Temporary files
+*.tmp
+*.log

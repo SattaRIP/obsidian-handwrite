@@ -1,0 +1,457 @@
+/* Calligraphy Notes Plugin Styles */
+
+.calligraphy-canvas-container {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	padding: 10px;
+	background-color: var(--background-primary);
+	position: relative; /* For absolute positioning of context menu */
+}
+
+.calligraphy-toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	padding: 10px;
+	background-color: var(--background-secondary);
+	border-radius: 6px;
+	margin-bottom: 10px;
+	align-items: center;
+}
+
+.calligraphy-toolbar button {
+	padding: 6px 12px;
+	background-color: var(--interactive-normal);
+	color: var(--text-normal);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	cursor: pointer;
+	font-size: 13px;
+	transition: all 0.2s ease;
+}
+
+.calligraphy-toolbar button:hover {
+	background-color: var(--interactive-hover);
+}
+
+.calligraphy-toolbar button.active {
+	background-color: var(--interactive-accent);
+	color: var(--text-on-accent);
+	border-color: var(--interactive-accent);
+}
+
+.calligraphy-toolbar .extract-btn {
+	background-color: var(--color-green);
+	color: white;
+	font-weight: 500;
+}
+
+.calligraphy-toolbar .extract-btn:hover {
+	background-color: var(--color-green);
+	opacity: 0.9;
+}
+
+.calligraphy-toolbar .scribble-btn.active {
+	background-color: var(--color-red);
+	color: white;
+	border-color: var(--color-red);
+}
+
+.calligraphy-toolbar .lines-btn.active {
+	background-color: var(--interactive-accent);
+	color: var(--text-on-accent);
+	border-color: var(--interactive-accent);
+}
+
+.pen-type-control {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 4px 8px;
+	background-color: var(--background-primary);
+	border-radius: 4px;
+}
+
+.pen-type-control span {
+	font-size: 12px;
+	color: var(--text-muted);
+}
+
+.pen-type-select {
+	background-color: var(--background-primary);
+	color: var(--text-normal);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	padding: 4px 8px;
+	font-size: 12px;
+	cursor: pointer;
+}
+
+.pen-type-select:hover {
+	background-color: var(--interactive-hover);
+}
+
+.pen-type-select:focus {
+	outline: none;
+	border-color: var(--interactive-accent);
+}
+
+.line-controls {
+	display: flex;
+	gap: 10px;
+	flex-wrap: wrap;
+	padding: 4px;
+	background-color: var(--background-modifier-form-field);
+	border-radius: 4px;
+	border: 1px dashed var(--color-blue);
+}
+
+.calligraphy-toolbar .reload-btn {
+	background-color: var(--interactive-accent);
+	color: var(--text-on-accent);
+	border-color: var(--interactive-accent);
+}
+
+.spacing-controls {
+	display: flex;
+	gap: 10px;
+	flex-wrap: wrap;
+	padding: 4px;
+	background-color: var(--background-modifier-form-field);
+	border-radius: 4px;
+	border: 1px dashed var(--interactive-accent);
+}
+
+.size-control,
+.color-control {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 4px 8px;
+	background-color: var(--background-primary);
+	border-radius: 4px;
+}
+
+.size-control span,
+.color-control span {
+	font-size: 12px;
+	color: var(--text-muted);
+}
+
+.size-control input[type="range"] {
+	width: 100px;
+}
+
+.size-control span:last-child {
+	min-width: 20px;
+	text-align: center;
+	font-weight: 500;
+	color: var(--text-normal);
+}
+
+.color-control input[type="color"] {
+	width: 40px;
+	height: 28px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	cursor: pointer;
+}
+
+.simple-color-buttons {
+	display: flex;
+	gap: 6px;
+	align-items: center;
+}
+
+.simple-color-btn {
+	width: 32px;
+	height: 32px;
+	border-radius: 4px;
+	cursor: pointer;
+	transition: all 0.15s ease;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.simple-color-btn:hover {
+	transform: scale(1.1);
+	box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+}
+
+.simple-color-btn:active {
+	transform: scale(0.95);
+}
+
+.auto-pen-color-control {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 4px 8px;
+	background-color: var(--background-primary);
+	border-radius: 4px;
+}
+
+.auto-pen-color-checkbox {
+	cursor: pointer;
+}
+
+.auto-pen-color-label {
+	font-size: 12px;
+	color: var(--text-muted);
+	cursor: pointer;
+	user-select: none;
+}
+
+.canvas-wrapper {
+	flex: 1;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background-color: var(--background-primary);
+	border: 2px solid var(--background-modifier-border);
+	border-radius: 6px;
+	padding: 10px;
+	overflow: auto;
+	min-height: 500px;
+	resize: both;
+	position: relative;
+}
+
+.canvas-wrapper canvas {
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+	display: block;
+	position: absolute;
+}
+
+/* Lines canvas - background layer */
+.canvas-wrapper canvas.lines-canvas {
+	z-index: 1;
+	background-color: #ffffff;
+}
+
+/* Content canvas - foreground layer */
+.canvas-wrapper canvas.content-canvas {
+	z-index: 2;
+	background-color: transparent;
+}
+
+/* Modal Styles */
+.modal-description {
+	color: var(--text-muted);
+	margin-bottom: 15px;
+}
+
+.extracted-text-area {
+	width: 100%;
+	min-height: 200px;
+	padding: 12px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	background-color: var(--background-primary);
+	color: var(--text-normal);
+	font-family: var(--font-monospace);
+	font-size: 14px;
+	line-height: 1.6;
+	resize: vertical;
+	margin-bottom: 15px;
+}
+
+.modal-button-container {
+	display: flex;
+	gap: 10px;
+	justify-content: flex-end;
+}
+
+.modal-button-container button {
+	padding: 8px 16px;
+	border-radius: 4px;
+	cursor: pointer;
+	font-size: 14px;
+	border: 1px solid var(--background-modifier-border);
+	background-color: var(--interactive-normal);
+	color: var(--text-normal);
+}
+
+.modal-button-container button:hover {
+	background-color: var(--interactive-hover);
+}
+
+.modal-button-container button.mod-cta {
+	background-color: var(--interactive-accent);
+	color: var(--text-on-accent);
+	border-color: var(--interactive-accent);
+}
+
+.modal-button-container button.mod-cta:hover {
+	background-color: var(--interactive-accent-hover);
+}
+
+/* Dark mode adjustments */
+.theme-dark .canvas-wrapper {
+	background-color: var(--background-secondary);
+}
+
+.theme-dark .canvas-wrapper canvas.lines-canvas {
+	background-color: #000000;
+	border-color: var(--background-modifier-border);
+}
+
+.theme-dark .canvas-wrapper canvas.content-canvas {
+	background-color: transparent;
+}
+
+/* Light mode - ensure white background */
+.theme-light .canvas-wrapper canvas.lines-canvas {
+	background-color: #ffffff;
+}
+
+.theme-light .canvas-wrapper canvas.content-canvas {
+	background-color: transparent;
+}
+
+/* Diff Modal Styles */
+.diff-modal .modal {
+	width: 90%;
+	max-width: 1000px;
+}
+
+.comparison-container {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 20px;
+	margin-bottom: 20px;
+}
+
+.text-section h3 {
+	font-size: 14px;
+	font-weight: 600;
+	margin-bottom: 10px;
+	color: var(--text-normal);
+}
+
+.diff-text-area {
+	width: 100%;
+	min-height: 250px;
+	padding: 12px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	background-color: var(--background-primary);
+	color: var(--text-normal);
+	font-family: var(--font-text);
+	font-size: 14px;
+	line-height: 1.6;
+	resize: vertical;
+}
+
+.diff-text-area.original-text {
+	background-color: var(--background-secondary);
+	opacity: 0.9;
+}
+
+.diff-text-area.extracted-text {
+	border-color: var(--interactive-accent);
+	border-width: 2px;
+}
+
+.diff-summary {
+	padding: 12px;
+	background-color: var(--background-secondary);
+	border-radius: 4px;
+	margin-bottom: 15px;
+}
+
+.diff-stats {
+	margin: 0;
+	font-size: 13px;
+	color: var(--text-muted);
+	font-family: var(--font-monospace);
+}
+
+.diff-stats.scribble-info {
+	color: var(--color-red);
+	font-weight: 500;
+	margin-top: 5px;
+}
+
+/* Context Menu */
+.handwrite-context-menu {
+	background-color: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+	padding: 4px;
+	min-width: 200px;
+}
+
+.handwrite-context-menu-item {
+	padding: 8px 12px;
+	cursor: pointer;
+	border-radius: 4px;
+	font-size: 13px;
+	color: var(--text-normal);
+	transition: background-color 0.1s ease;
+}
+
+.handwrite-context-menu-item:hover {
+	background-color: var(--background-modifier-hover);
+}
+
+.handwrite-context-menu-separator {
+	height: 1px;
+	background-color: var(--background-modifier-border);
+	margin: 4px 0;
+}
+
+/* Drawing button styling */
+.calligraphy-toolbar .drawing-btn.active {
+	background-color: var(--color-green);
+	color: white;
+	border-color: var(--color-green);
+}
+
+/* Eraser button styling */
+.calligraphy-toolbar .eraser-btn.active {
+	background-color: var(--color-purple);
+	color: white;
+	border-color: var(--color-purple);
+}
+
+/* Pan button styling */
+.calligraphy-toolbar .pan-btn.active {
+	background-color: var(--color-cyan);
+	color: white;
+	border-color: var(--color-cyan);
+}
+
+/* Move button styling */
+.calligraphy-toolbar .move-btn.active {
+	background-color: var(--color-orange);
+	color: white;
+	border-color: var(--color-orange);
+}
+
+/* Light/Dark mode button - styled dynamically via JS to match canvas */
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+	.calligraphy-toolbar {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.calligraphy-toolbar button {
+		width: 100%;
+	}
+
+	.size-control,
+	.color-control {
+		justify-content: space-between;
+	}
+
+	.comparison-container {
+		grid-template-columns: 1fr;
+		gap: 15px;
+	}
+}
