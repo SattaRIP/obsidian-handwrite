@@ -1764,24 +1764,31 @@ class CalligraphyCanvasView extends ItemView {
 	// Get bounding box of a stroke
 	getStrokeBounds(stroke) {
 		const points = stroke.points;
-		if (points.length === 0) return { x: 0, y: 0, width: 0, height: 0 };
+		console.log('getStrokeBounds - points:', points ? points.length : 'undefined', 'first point:', points?.[0]);
+
+		if (!points || points.length === 0) return { x: 0, y: 0, width: 0, height: 0 };
 
 		let minX = Infinity, minY = Infinity;
 		let maxX = -Infinity, maxY = -Infinity;
 
 		for (const p of points) {
-			minX = Math.min(minX, p.x);
-			minY = Math.min(minY, p.y);
-			maxX = Math.max(maxX, p.x);
-			maxY = Math.max(maxY, p.y);
+			if (p && typeof p.x === 'number' && typeof p.y === 'number') {
+				minX = Math.min(minX, p.x);
+				minY = Math.min(minY, p.y);
+				maxX = Math.max(maxX, p.x);
+				maxY = Math.max(maxY, p.y);
+			}
 		}
 
-		return {
-			x: minX,
-			y: minY,
-			width: maxX - minX,
-			height: maxY - minY
+		const bounds = {
+			x: minX === Infinity ? 0 : minX,
+			y: minY === Infinity ? 0 : minY,
+			width: maxX === -Infinity ? 0 : maxX - minX,
+			height: maxY === -Infinity ? 0 : maxY - minY
 		};
+
+		console.log('Computed bounds:', bounds);
+		return bounds;
 	}
 
 	// Calculate distance from stroke to text object
