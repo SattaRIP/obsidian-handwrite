@@ -533,16 +533,14 @@ class CalligraphyCanvasView extends ItemView {
 
 		// Save canvas button
 		const saveBtn = toolbar.createEl('button', { text: 'Save Canvas' });
-		saveBtn.addEventListener('click', async () => {
-			await this.saveCanvasData();
-			new Notice('Canvas saved!');
+		saveBtn.addEventListener('click', () => {
+			new SaveCanvasModal(this.app, this).open();
 		});
 
 		// Load canvas button
 		const loadBtn = toolbar.createEl('button', { text: 'Load Canvas' });
-		loadBtn.addEventListener('click', async () => {
-			await this.loadCanvasData();
-			new Notice('Canvas loaded!');
+		loadBtn.addEventListener('click', () => {
+			new LoadCanvasModal(this.app, this).open();
 		});
 
 		// Clear button
@@ -1384,20 +1382,31 @@ class CalligraphyCanvasView extends ItemView {
 		this.saveCanvasData();
 	}
 
-	async saveCanvasData() {
-		// Save canvas data to plugin settings (auto-saves to data.json)
-		this.plugin.settings.canvasData = {
+	async saveCanvasData(name = 'autosave') {
+		// Save canvas data to plugin settings with a name
+		if (!this.plugin.settings.savedCanvases) {
+			this.plugin.settings.savedCanvases = {};
+		}
+
+		this.plugin.settings.savedCanvases[name] = {
 			strokes: this.strokes,
 			textObjects: this.textObjects,
 			canvasMode: this.canvasMode,
-			zoom: this.zoom
+			zoom: this.zoom,
+			savedAt: new Date().toISOString()
 		};
+
 		await this.plugin.saveSettings();
+		console.log(`Saved canvas: "${name}"`);
 	}
 
-	async loadCanvasData() {
-		// Load canvas data from plugin settings
-		const canvasData = this.plugin.settings.canvasData;
+	async loadCanvasData(name = 'autosave') {
+		// Load canvas data from plugin settings by name
+		if (!this.plugin.settings.savedCanvases) {
+			this.plugin.settings.savedCanvases = {};
+		}
+
+		const canvasData = this.plugin.settings.savedCanvases[name];
 		if (canvasData) {
 			this.strokes = canvasData.strokes || [];
 			this.textObjects = canvasData.textObjects || [];
@@ -1407,7 +1416,28 @@ class CalligraphyCanvasView extends ItemView {
 			// Redraw loaded canvas
 			this.redrawCanvas();
 
-			console.log(`Loaded canvas: ${this.strokes.length} strokes, ${this.textObjects.length} text objects`);
+			console.log(`Loaded canvas: "${name}" - ${this.strokes.length} strokes, ${this.textObjects.length} text objects`);
+			return true;
+		} else {
+			console.log(`No saved canvas found with name: "${name}"`);
+			return false;
+		}
+	}
+
+	getSavedCanvasNames() {
+		// Get list of all saved canvas names
+		if (!this.plugin.settings.savedCanvases) {
+			return [];
+		}
+		return Object.keys(this.plugin.settings.savedCanvases);
+	}
+
+	async deleteCanvasData(name) {
+		// Delete a saved canvas
+		if (this.plugin.settings.savedCanvases && this.plugin.settings.savedCanvases[name]) {
+			delete this.plugin.settings.savedCanvases[name];
+			await this.plugin.saveSettings();
+			console.log(`Deleted canvas: "${name}"`);
 		}
 	}
 
@@ -2806,6 +2836,192 @@ class DiffModal extends Modal {
 	}
 }
 
+// Modal for saving canvas with a name
+class SaveCanvasModal extends Modal {
+	constructor(app, view, defaultName = '') {
+		super(app);
+		this.view = view;
+		this.defaultName = defaultName;
+	}
+
+	onOpen() {
+		const { contentEl } = this;
+		contentEl.empty();
+
+		contentEl.createEl('h2', { text: 'Save Canvas' });
+		contentEl.createEl('p', { text: 'Enter a name for this canvas:' });
+
+		const inputContainer = contentEl.createDiv({ cls: 'canvas-save-input' });
+		const input = inputContainer.createEl('input', {
+			type: 'text',
+			placeholder: 'e.g., "My Drawing", "Notes 2024-03-01"',
+			attr: { value: this.defaultName }
+		});
+		input.style.width = '100%';
+		input.style.padding = '8px';
+		input.style.marginBottom = '15px';
+
+		// Show existing canvases
+		const existingNames = this.view.getSavedCanvasNames().filter(name => name !== 'autosave');
+		if (existingNames.length > 0) {
+			contentEl.createEl('p', { text: 'Existing canvases:', cls: 'setting-item-description' });
+			const list = contentEl.createEl('ul', { cls: 'canvas-list' });
+			list.style.maxHeight = '150px';
+			list.style.overflowY = 'auto';
+			list.style.marginBottom = '15px';
+			existingNames.forEach(name => {
+				const item = list.createEl('li');
+				item.setText(name);
+				item.style.cursor = 'pointer';
+				item.style.padding = '4px';
+				item.addEventListener('click', () => {
+					input.value = name;
+					input.focus();
+				});
+			});
+		}
+
+		const buttonContainer = contentEl.createDiv({ cls: 'modal-button-container' });
+
+		const saveBtn = buttonContainer.createEl('button', {
+			text: 'Save',
+			cls: 'mod-cta'
+		});
+		saveBtn.addEventListener('click', async () => {
+			const name = input.value.trim();
+			if (!name) {
+				new Notice('Please enter a canvas name');
+				return;
+			}
+			await this.view.saveCanvasData(name);
+			new Notice(`Canvas saved as "${name}"`);
+			this.close();
+		});
+
+		const cancelBtn = buttonContainer.createEl('button', { text: 'Cancel' });
+		cancelBtn.addEventListener('click', () => {
+			this.close();
+		});
+
+		// Focus input and select all
+		setTimeout(() => {
+			input.focus();
+			input.select();
+		}, 10);
+
+		// Allow Enter key to save
+		input.addEventListener('keydown', (e) => {
+			if (e.key === 'Enter') {
+				saveBtn.click();
+			}
+		});
+	}
+
+	onClose() {
+		const { contentEl } = this;
+		contentEl.empty();
+	}
+}
+
+// Modal for loading a saved canvas
+class LoadCanvasModal extends Modal {
+	constructor(app, view) {
+		super(app);
+		this.view = view;
+	}
+
+	onOpen() {
+		const { contentEl } = this;
+		contentEl.empty();
+
+		contentEl.createEl('h2', { text: 'Load Canvas' });
+		contentEl.createEl('p', { text: 'Select a canvas to load:' });
+
+		const savedNames = this.view.getSavedCanvasNames();
+		if (savedNames.length === 0) {
+			contentEl.createEl('p', {
+				text: 'No saved canvases found. Draw something and save it first!',
+				cls: 'setting-item-description'
+			});
+
+			const okBtn = contentEl.createEl('button', { text: 'OK', cls: 'mod-cta' });
+			okBtn.addEventListener('click', () => this.close());
+			return;
+		}
+
+		const list = contentEl.createDiv({ cls: 'canvas-load-list' });
+		list.style.maxHeight = '400px';
+		list.style.overflowY = 'auto';
+
+		savedNames.forEach(name => {
+			const canvasData = this.view.plugin.settings.savedCanvases[name];
+			const item = list.createDiv({ cls: 'canvas-load-item' });
+			item.style.padding = '12px';
+			item.style.marginBottom = '8px';
+			item.style.border = '1px solid var(--background-modifier-border)';
+			item.style.borderRadius = '4px';
+			item.style.cursor = 'pointer';
+
+			const nameEl = item.createEl('div', { text: name });
+			nameEl.style.fontWeight = 'bold';
+			nameEl.style.marginBottom = '4px';
+
+			const info = item.createEl('div', { cls: 'setting-item-description' });
+			info.style.fontSize = '12px';
+			const strokeCount = canvasData.strokes?.length || 0;
+			const textCount = canvasData.textObjects?.length || 0;
+			const savedAt = canvasData.savedAt ? new Date(canvasData.savedAt).toLocaleString() : 'Unknown';
+			info.setText(`${strokeCount} strokes, ${textCount} text objects - Saved: ${savedAt}`);
+
+			// Hover effect
+			item.addEventListener('mouseenter', () => {
+				item.style.backgroundColor = 'var(--background-modifier-hover)';
+			});
+			item.addEventListener('mouseleave', () => {
+				item.style.backgroundColor = '';
+			});
+
+			// Load button
+			const buttonContainer = item.createDiv({ cls: 'canvas-load-buttons' });
+			buttonContainer.style.marginTop = '8px';
+			buttonContainer.style.display = 'flex';
+			buttonContainer.style.gap = '8px';
+
+			const loadBtn = buttonContainer.createEl('button', { text: 'Load', cls: 'mod-cta' });
+			loadBtn.addEventListener('click', async (e) => {
+				e.stopPropagation();
+				await this.view.loadCanvasData(name);
+				new Notice(`Loaded canvas "${name}"`);
+				this.close();
+			});
+
+			// Delete button (except for autosave)
+			if (name !== 'autosave') {
+				const deleteBtn = buttonContainer.createEl('button', { text: 'Delete', cls: 'mod-warning' });
+				deleteBtn.addEventListener('click', async (e) => {
+					e.stopPropagation();
+					if (confirm(`Delete canvas "${name}"?`)) {
+						await this.view.deleteCanvasData(name);
+						new Notice(`Deleted canvas "${name}"`);
+						this.onOpen(); // Refresh the list
+					}
+				});
+			}
+		});
+
+		const cancelBtn = contentEl.createEl('button', { text: 'Cancel' });
+		cancelBtn.style.marginTop = '15px';
+		cancelBtn.addEventListener('click', () => {
+			this.close();
+		});
+	}
+
+	onClose() {
+		const { contentEl } = this;
+		contentEl.empty();
+	}
+}
+
 // Main Plugin
 // Default settings
 const DEFAULT_SETTINGS = {
@@ -2818,12 +3034,7 @@ const DEFAULT_SETTINGS = {
 	myScriptUsageCount: 0, // Track MyScript API usage
 	googleCloudUsageCount: 0, // Track Google Cloud API usage
 	usageResetDate: '', // Last reset date for usage tracking
-	canvasData: { // Canvas save data
-		strokes: [],
-		textObjects: [],
-		canvasMode: 'light',
-		zoom: 1
-	}
+	savedCanvases: {} // Multiple saved canvases: { "name": { strokes, textObjects, canvasMode, zoom }, ... }
 };
 
 // Settings tab
