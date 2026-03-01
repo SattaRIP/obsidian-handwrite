@@ -1,7 +1,7 @@
 {
 	"id": "handwrite",
 	"name": "Handwrite",
-	"version": "8.5.2",
+	"version": "8.5.3",
 	"minAppVersion": "0.15.0",
 	"description": "Professional handwriting and drawing plugin for pen displays and tablets with dual OCR options: MyScript (2000 free/month, 98% accuracy - same as Kobo eReader) or Google Cloud Vision (1000 free/month). Realistic pen types: fixed-angle calligraphy nib, fountain pen, pencil. Features: OCR handwriting recognition with provider selection and API usage tracking, infinite-like canvas (5000x5000), zoom/pan, 4 mutually exclusive modes (Handwriting, Eraser, Pan, Select/Move), drag-to-select rectangle for multiple objects, simplified color picker (white/black/grey quick-select buttons, optional full color picker in settings), customizable selection color (accessibility support), right-click & stylus button context menus (copy/cut/paste/resize/duplicate), dynamic cursors (hand for pan, theme-matched eraser, pointer/move), middle mouse pan without mode toggle, Light/Dark canvas toggle with auto pen color switching, stroke metadata storage with proper color preservation, text paste from notes for editing, adjustable font size (8-72px), smooth quadratic curves for natural handwriting feel, optimized performance (eliminated save/restore overhead, conditional updates, optimized calligraphy calculations, cached trigonometry), comprehensive undo/redo, ruled lines toggle.",
 	"author": "Custom Plugin",

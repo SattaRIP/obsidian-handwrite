@@ -1719,15 +1719,21 @@ class CalligraphyCanvasView extends ItemView {
 
 	// Find the nearest text object to a stroke
 	findNearestTextObject(stroke) {
+		console.log('findNearestTextObject - textObjects count:', this.textObjects.length);
+
 		let nearestText = null;
 		let minDistance = Infinity;
 
 		// Get stroke bounding box
 		const bbox = this.getStrokeBounds(stroke);
+		console.log('Stroke bbox:', bbox);
 
 		for (let i = 0; i < this.textObjects.length; i++) {
 			const textObj = this.textObjects[i];
+			console.log(`Text object ${i}:`, { text: textObj.text, x: textObj.x, y: textObj.y });
+
 			const distance = this.distanceFromStrokeToText(bbox, textObj);
+			console.log(`Distance to text object ${i}:`, distance);
 
 			if (distance < minDistance) {
 				minDistance = distance;
