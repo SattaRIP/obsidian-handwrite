@@ -531,6 +531,20 @@ class CalligraphyCanvasView extends ItemView {
 			this.redo();
 		});
 
+		// Save canvas button
+		const saveBtn = toolbar.createEl('button', { text: 'Save Canvas' });
+		saveBtn.addEventListener('click', async () => {
+			await this.saveCanvasData();
+			new Notice('Canvas saved!');
+		});
+
+		// Load canvas button
+		const loadBtn = toolbar.createEl('button', { text: 'Load Canvas' });
+		loadBtn.addEventListener('click', async () => {
+			await this.loadCanvasData();
+			new Notice('Canvas loaded!');
+		});
+
 		// Clear button
 		const clearBtn = toolbar.createEl('button', { text: 'Clear Canvas' });
 		clearBtn.addEventListener('click', () => {
@@ -608,6 +622,9 @@ class CalligraphyCanvasView extends ItemView {
 
 		// Keyboard shortcuts
 		this.registerKeyboardShortcuts(container);
+
+		// Load saved canvas data
+		await this.loadCanvasData();
 
 		// Save initial state
 		this.saveState();
@@ -1361,6 +1378,36 @@ class CalligraphyCanvasView extends ItemView {
 		if (this.history.length > 50) {
 			this.history.shift();
 			this.historyStep--;
+		}
+
+		// Auto-save canvas data to disk
+		this.saveCanvasData();
+	}
+
+	async saveCanvasData() {
+		// Save canvas data to plugin settings (auto-saves to data.json)
+		this.plugin.settings.canvasData = {
+			strokes: this.strokes,
+			textObjects: this.textObjects,
+			canvasMode: this.canvasMode,
+			zoom: this.zoom
+		};
+		await this.plugin.saveSettings();
+	}
+
+	async loadCanvasData() {
+		// Load canvas data from plugin settings
+		const canvasData = this.plugin.settings.canvasData;
+		if (canvasData) {
+			this.strokes = canvasData.strokes || [];
+			this.textObjects = canvasData.textObjects || [];
+			this.canvasMode = canvasData.canvasMode || 'light';
+			this.zoom = canvasData.zoom || 1;
+
+			// Redraw loaded canvas
+			this.redrawCanvas();
+
+			console.log(`Loaded canvas: ${this.strokes.length} strokes, ${this.textObjects.length} text objects`);
 		}
 	}
 
@@ -2770,7 +2817,13 @@ const DEFAULT_SETTINGS = {
 	googleCloudApiKey: '', // Google Cloud Vision API key
 	myScriptUsageCount: 0, // Track MyScript API usage
 	googleCloudUsageCount: 0, // Track Google Cloud API usage
-	usageResetDate: '' // Last reset date for usage tracking
+	usageResetDate: '', // Last reset date for usage tracking
+	canvasData: { // Canvas save data
+		strokes: [],
+		textObjects: [],
+		canvasMode: 'light',
+		zoom: 1
+	}
 };
 
 // Settings tab
