@@ -2168,8 +2168,15 @@ class CalligraphyCanvasView extends ItemView {
 					text: item.label,
 					cls: 'handwrite-context-menu-item'
 				});
-				menuItem.addEventListener('click', async () => {
-					await item.action();
+				menuItem.addEventListener('click', async (e) => {
+					console.log('Menu item clicked:', item.label);
+					e.stopPropagation();
+					try {
+						await item.action();
+						console.log('Action completed:', item.label);
+					} catch (error) {
+						console.error('Action failed:', item.label, error);
+					}
 					this.hideContextMenu();
 				});
 			}
@@ -2181,20 +2188,25 @@ class CalligraphyCanvasView extends ItemView {
 
 		// Close menu when clicking outside
 		const closeHandler = (e) => {
+			console.log('closeHandler fired, target:', e.target, 'contains:', menu.contains(e.target));
 			if (!menu.contains(e.target)) {
+				console.log('Closing menu - clicked outside');
 				this.hideContextMenu();
 				document.removeEventListener('pointerdown', closeHandler);
 			}
 		};
 		setTimeout(() => {
+			console.log('Adding closeHandler to document');
 			document.addEventListener('pointerdown', closeHandler);
 		}, 10);
 	}
 
 	hideContextMenu() {
+		console.log('hideContextMenu called');
 		if (this.contextMenu) {
 			this.contextMenu.remove();
 			this.contextMenu = null;
+			console.log('Context menu removed');
 		}
 	}
 
