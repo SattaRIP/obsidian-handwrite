@@ -72,6 +72,9 @@ class CalligraphyCanvasView extends ItemView {
 		this.dragSelectionEnd = { x: 0, y: 0 }; // Selection rectangle end
 		this.selectedTextIndices = []; // Multiple selected text objects
 		this.selectedStrokeIndices = []; // Multiple selected strokes
+		this.editingTextIndex = -1; // Index of text object being edited
+		this.editOverlay = null; // Reference to edit overlay element
+		this.isEditingText = false; // Flag for whether text is being edited
 	}
 
 	detectDarkMode() {
@@ -613,6 +616,14 @@ class CalligraphyCanvasView extends ItemView {
 		// Handle pointerenter to set cursor when stylus hovers over canvas
 		this.canvas.addEventListener('pointerenter', (e) => {
 			this.updateCursor();
+		});
+
+		// Double-click to edit text objects
+		this.canvas.addEventListener('dblclick', (e) => {
+			const textIndex = this.getTextObjectAtPosition(e.offsetX, e.offsetY);
+			if (textIndex >= 0) {
+				this.enterTextEditMode(textIndex);
+			}
 		});
 
 		// Enable pen pressure
@@ -1611,7 +1622,13 @@ class CalligraphyCanvasView extends ItemView {
 
 	renderTextObjects() {
 		// Redraw all text objects
-		for (let textObj of this.textObjects) {
+		for (let i = 0; i < this.textObjects.length; i++) {
+			// Skip rendering the text being edited
+			if (this.isEditingText && i === this.editingTextIndex) {
+				continue;
+			}
+
+			const textObj = this.textObjects[i];
 			this.ctx.save();
 			this.ctx.fillStyle = textObj.color;
 			this.ctx.font = `${textObj.fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
@@ -2235,6 +2252,88 @@ class CalligraphyCanvasView extends ItemView {
 				new Notice('Invalid font size. Must be between 8 and 72.');
 			}
 		}
+	}
+
+	enterTextEditMode(index) {
+		if (index < 0 || index >= this.textObjects.length) return;
+
+		const textObj = this.textObjects[index];
+		this.editingTextIndex = index;
+
+		// Get canvas position
+		const canvasRect = this.canvas.getBoundingClientRect();
+
+		// Create overlay div for editing
+		const overlay = document.createElement('div');
+		overlay.contentEditable = 'true';
+		overlay.textContent = textObj.text;
+		overlay.className = 'text-edit-overlay';
+		overlay.style.position = 'absolute';
+		overlay.style.left = `${canvasRect.left + textObj.x}px`;
+		overlay.style.top = `${canvasRect.top + textObj.y - textObj.fontSize}px`;
+		overlay.style.fontSize = `${textObj.fontSize}px`;
+		overlay.style.color = textObj.color;
+		overlay.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+		overlay.style.background = 'transparent';
+		overlay.style.border = '2px solid #0066CC';
+		overlay.style.outline = 'none';
+		overlay.style.padding = '2px';
+		overlay.style.minWidth = '50px';
+		overlay.style.lineHeight = '1.2';
+		overlay.style.zIndex = '1000';
+		overlay.style.whiteSpace = 'pre-wrap';
+
+		document.body.appendChild(overlay);
+		this.editOverlay = overlay;
+
+		// Focus and select all text
+		overlay.focus();
+		const selection = window.getSelection();
+		const range = document.createRange();
+		range.selectNodeContents(overlay);
+		selection.removeAllRanges();
+		selection.addRange(range);
+
+		// Handle blur to exit edit mode
+		overlay.addEventListener('blur', () => {
+			setTimeout(() => this.exitTextEditMode(), 10);
+		});
+
+		// Handle Enter key to save (Shift+Enter for new line)
+		overlay.addEventListener('keydown', (e) => {
+			if (e.key === 'Enter' && !e.shiftKey) {
+				e.preventDefault();
+				overlay.blur();
+			} else if (e.key === 'Escape') {
+				// Cancel editing
+				this.editOverlay.textContent = textObj.text; // Restore original
+				overlay.blur();
+			}
+		});
+
+		// Hide the original text on canvas during editing
+		this.isEditingText = true;
+		this.redrawWithSelection();
+	}
+
+	exitTextEditMode() {
+		if (!this.editOverlay || this.editingTextIndex === -1) return;
+
+		// Update text object with edited content
+		const newText = this.editOverlay.textContent.trim();
+		if (newText) {
+			this.textObjects[this.editingTextIndex].text = newText;
+		}
+
+		// Remove overlay
+		this.editOverlay.remove();
+		this.editOverlay = null;
+		this.editingTextIndex = -1;
+		this.isEditingText = false;
+
+		// Redraw canvas with updated text
+		this.redrawWithSelection();
+		this.saveState();
 	}
 
 	async pasteTextAtPosition(x, y) {
