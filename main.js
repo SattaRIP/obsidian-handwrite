@@ -75,6 +75,13 @@ class CalligraphyCanvasView extends ItemView {
 		this.editingTextIndex = -1; // Index of text object being edited
 		this.editOverlay = null; // Reference to edit overlay element
 		this.isEditingText = false; // Flag for whether text is being edited
+
+		// Gesture-based editing state
+		this.editSession = null; // Current edit session for gesture-based editing
+		this.lastStrokeTime = 0; // Timestamp of last stroke
+		this.editCommitTimer = null; // Timer for auto-committing edits
+		this.PROXIMITY_THRESHOLD = 50; // Pixels to detect drawing near text
+		this.EDIT_COMMIT_DELAY = 2000; // Ms to wait before showing confirmation (2 seconds)
 	}
 
 	detectDarkMode() {
@@ -1307,12 +1314,17 @@ class CalligraphyCanvasView extends ItemView {
 			}
 
 			// Save stroke with metadata for proper duplication and rendering
-			this.strokes.push({
+			const stroke = {
 				points: [...this.currentStroke],
 				penType: this.penType,
 				penColor: this.penColor,
 				baseLineWidth: this.baseLineWidth
-			});
+			};
+			this.strokes.push(stroke);
+
+			// Check if this stroke is a gesture near text
+			this.checkGestureStroke(stroke);
+
 			this.saveState();
 		}
 
@@ -1635,6 +1647,285 @@ class CalligraphyCanvasView extends ItemView {
 			this.ctx.fillText(textObj.text, textObj.x, textObj.y);
 			this.ctx.restore();
 		}
+	}
+
+	// Compute detailed text layout for gesture detection
+	computeTextLayout(textObj) {
+		this.ctx.font = `${textObj.fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+
+		const words = [];
+		const text = textObj.text;
+
+		// Split into words, preserving spaces
+		const wordPattern = /(\S+)(\s*)/g;
+		let match;
+		let currentX = 0;
+
+		while ((match = wordPattern.exec(text)) !== null) {
+			const word = match[1];
+			const space = match[2];
+			const startIndex = match.index;
+
+			// Measure word
+			const wordMetrics = this.ctx.measureText(word);
+			const wordWidth = wordMetrics.width;
+
+			words.push({
+				text: word,
+				startIndex: startIndex,
+				endIndex: startIndex + word.length,
+				x: currentX,
+				width: wordWidth
+			});
+
+			// Add space width
+			const spaceWidth = this.ctx.measureText(space).width;
+			currentX += wordWidth + spaceWidth;
+		}
+
+		return {
+			words: words,
+			totalWidth: currentX,
+			lineHeight: textObj.fontSize * 1.2
+		};
+	}
+
+	// Check if a completed stroke is a gesture (strike-through or caret)
+	checkGestureStroke(stroke) {
+		// Find nearest text object
+		const nearestText = this.findNearestTextObject(stroke);
+
+		if (!nearestText || nearestText.distance > this.PROXIMITY_THRESHOLD) {
+			return; // Not near any text
+		}
+
+		// Classify the stroke
+		const classification = this.classifyStroke(stroke, nearestText.textObj);
+
+		if (classification.type === 'strike-through') {
+			console.log('Strike-through detected!', classification);
+			this.handleStrikeThrough(stroke, nearestText.textObj, classification);
+		}
+		// Future: handle caret gestures here
+	}
+
+	// Find the nearest text object to a stroke
+	findNearestTextObject(stroke) {
+		let nearestText = null;
+		let minDistance = Infinity;
+
+		// Get stroke bounding box
+		const bbox = this.getStrokeBounds(stroke);
+
+		for (let i = 0; i < this.textObjects.length; i++) {
+			const textObj = this.textObjects[i];
+			const distance = this.distanceFromStrokeToText(bbox, textObj);
+
+			if (distance < minDistance) {
+				minDistance = distance;
+				nearestText = { textObj, textIndex: i };
+			}
+		}
+
+		return nearestText ? { ...nearestText, distance: minDistance } : null;
+	}
+
+	// Get bounding box of a stroke
+	getStrokeBounds(stroke) {
+		const points = stroke.points;
+		if (points.length === 0) return { x: 0, y: 0, width: 0, height: 0 };
+
+		let minX = Infinity, minY = Infinity;
+		let maxX = -Infinity, maxY = -Infinity;
+
+		for (const p of points) {
+			minX = Math.min(minX, p.x);
+			minY = Math.min(minY, p.y);
+			maxX = Math.max(maxX, p.x);
+			maxY = Math.max(maxY, p.y);
+		}
+
+		return {
+			x: minX,
+			y: minY,
+			width: maxX - minX,
+			height: maxY - minY
+		};
+	}
+
+	// Calculate distance from stroke to text object
+	distanceFromStrokeToText(strokeBBox, textObj) {
+		// Compute text bounding box
+		this.ctx.font = `${textObj.fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+		const metrics = this.ctx.measureText(textObj.text);
+		const textWidth = metrics.width;
+		const textHeight = textObj.fontSize * 1.2;
+
+		const textBBox = {
+			x: textObj.x,
+			y: textObj.y - textHeight * 0.8,
+			width: textWidth,
+			height: textHeight
+		};
+
+		// Distance between bounding boxes
+		const dx = Math.max(
+			textBBox.x - (strokeBBox.x + strokeBBox.width),
+			0,
+			strokeBBox.x - (textBBox.x + textBBox.width)
+		);
+		const dy = Math.max(
+			textBBox.y - (strokeBBox.y + strokeBBox.height),
+			0,
+			strokeBBox.y - (textBBox.y + textBBox.height)
+		);
+
+		return Math.sqrt(dx * dx + dy * dy);
+	}
+
+	// Classify stroke type (strike-through, caret, or regular drawing)
+	classifyStroke(stroke, textObj) {
+		const bbox = this.getStrokeBounds(stroke);
+		const points = stroke.points;
+
+		// Calculate linearity (how straight the stroke is)
+		const linearity = this.computeLinearity(points);
+
+		// Calculate primary direction
+		const angle = Math.atan2(
+			points[points.length - 1].y - points[0].y,
+			points[points.length - 1].x - points[0].x
+		);
+
+		// Check if horizontal
+		const isHorizontal = Math.abs(angle) < Math.PI / 6 ||
+		                     Math.abs(angle) > (5 * Math.PI / 6);
+
+		// Check if it intersects the text
+		const intersects = this.strokeIntersectsText(stroke, textObj);
+
+		// Strike-through criteria:
+		// 1. Fairly straight (linearity > 0.7)
+		// 2. Horizontal
+		// 3. Wide (aspect ratio > 3)
+		// 4. Intersects text vertically
+		const aspectRatio = bbox.width / Math.max(bbox.height, 1);
+
+		if (linearity > 0.7 && isHorizontal && aspectRatio > 3 && intersects) {
+			// Find affected words
+			const affectedWords = this.findAffectedWords(stroke, textObj);
+
+			return {
+				type: 'strike-through',
+				affectedWords: affectedWords,
+				lineY: bbox.y + bbox.height / 2
+			};
+		}
+
+		return { type: 'regular' };
+	}
+
+	// Compute how straight a stroke is (0 = curvy, 1 = perfectly straight)
+	computeLinearity(points) {
+		if (points.length < 3) return 1.0;
+
+		const start = points[0];
+		const end = points[points.length - 1];
+		const lineLength = Math.hypot(end.x - start.x, end.y - start.y);
+
+		if (lineLength < 1) return 0;
+
+		// Compute average perpendicular distance from ideal line
+		let totalDeviation = 0;
+		for (let i = 1; i < points.length - 1; i++) {
+			const p = points[i];
+			const dist = this.perpendicularDistance(p, start, end);
+			totalDeviation += dist;
+		}
+
+		const avgDeviation = totalDeviation / (points.length - 2);
+		const normalizedDeviation = avgDeviation / (lineLength * 0.1);
+
+		return Math.max(0, 1 - normalizedDeviation);
+	}
+
+	// Perpendicular distance from point to line
+	perpendicularDistance(point, lineStart, lineEnd) {
+		const dx = lineEnd.x - lineStart.x;
+		const dy = lineEnd.y - lineStart.y;
+		const length = Math.hypot(dx, dy);
+
+		if (length === 0) {
+			return Math.hypot(point.x - lineStart.x, point.y - lineStart.y);
+		}
+
+		const cross = Math.abs(
+			(point.x - lineStart.x) * dy - (point.y - lineStart.y) * dx
+		);
+
+		return cross / length;
+	}
+
+	// Check if stroke intersects text vertically
+	strokeIntersectsText(stroke, textObj) {
+		const layout = this.computeTextLayout(textObj);
+		const strokeBBox = this.getStrokeBounds(stroke);
+
+		const textTop = textObj.y - layout.lineHeight * 0.8;
+		const textBottom = textObj.y + layout.lineHeight * 0.2;
+
+		// Stroke should be within text vertical bounds
+		const strokeY = strokeBBox.y + strokeBBox.height / 2;
+		return strokeY >= textTop && strokeY <= textBottom;
+	}
+
+	// Find which words are affected by a strike-through
+	findAffectedWords(stroke, textObj) {
+		const layout = this.computeTextLayout(textObj);
+		const strokeBBox = this.getStrokeBounds(stroke);
+		const affectedWords = [];
+
+		for (let i = 0; i < layout.words.length; i++) {
+			const word = layout.words[i];
+			const wordX = textObj.x + word.x;
+			const wordEndX = wordX + word.width;
+
+			// Check horizontal overlap
+			const strokeStartX = strokeBBox.x;
+			const strokeEndX = strokeBBox.x + strokeBBox.width;
+
+			const overlaps = strokeStartX < wordEndX && strokeEndX > wordX;
+
+			if (overlaps) {
+				affectedWords.push({
+					index: i,
+					word: word.text,
+					startIndex: word.startIndex,
+					endIndex: word.endIndex
+				});
+			}
+		}
+
+		return affectedWords;
+	}
+
+	// Handle detected strike-through gesture
+	handleStrikeThrough(stroke, textObj, classification) {
+		const affectedWords = classification.affectedWords;
+
+		if (affectedWords.length === 0) return;
+
+		// Build deleted text range
+		const startIndex = affectedWords[0].startIndex;
+		const endIndex = affectedWords[affectedWords.length - 1].endIndex;
+
+		// Show preview
+		const wordList = affectedWords.map(w => w.word).join(' ');
+		new Notice(`Strike-through detected: "${wordList}"`);
+
+		// TODO: Wait for replacement text or timeout, then show confirmation
+		// For now, just highlight the affected text visually
+		console.log(`Would delete characters ${startIndex} to ${endIndex} from: "${textObj.text}"`);
 	}
 
 	getTextObjectAtPosition(x, y) {
