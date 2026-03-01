@@ -633,6 +633,23 @@ class CalligraphyCanvasView extends ItemView {
 			}
 		});
 
+		// Ctrl+Scroll to zoom
+		this.canvas.addEventListener('wheel', (e) => {
+			if (e.ctrlKey || e.metaKey) {
+				e.preventDefault();
+
+				// Zoom in on scroll up, out on scroll down
+				const zoomDelta = e.deltaY > 0 ? 0.9 : 1.1; // Use multiplier for smooth zoom
+				const newZoom = this.zoomLevel * zoomDelta;
+
+				// Clamp zoom between 0.2x and 5x (same limits as existing zoom buttons)
+				this.zoomLevel = Math.max(0.2, Math.min(5, newZoom));
+
+				this.applyZoom();
+				new Notice(`Zoom: ${Math.round(this.zoomLevel * 100)}%`);
+			}
+		}, { passive: false });
+
 		// Enable pen pressure
 		this.canvas.style.touchAction = 'none';
 
@@ -1782,19 +1799,30 @@ class CalligraphyCanvasView extends ItemView {
 			height: textHeight
 		};
 
-		// Distance between bounding boxes
-		const dx = Math.max(
-			textBBox.x - (strokeBBox.x + strokeBBox.width),
-			0,
-			strokeBBox.x - (textBBox.x + textBBox.width)
-		);
-		const dy = Math.max(
-			textBBox.y - (strokeBBox.y + strokeBBox.height),
-			0,
-			strokeBBox.y - (textBBox.y + textBBox.height)
-		);
+		// Distance between bounding boxes (properly calculate gap)
+		// If boxes overlap in X, dx = 0, otherwise distance between edges
+		let dx = 0;
+		if (strokeBBox.x > textBBox.x + textBBox.width) {
+			// Stroke is to the right of text
+			dx = strokeBBox.x - (textBBox.x + textBBox.width);
+		} else if (textBBox.x > strokeBBox.x + strokeBBox.width) {
+			// Text is to the right of stroke
+			dx = textBBox.x - (strokeBBox.x + strokeBBox.width);
+		}
 
-		return Math.sqrt(dx * dx + dy * dy);
+		// Same for Y
+		let dy = 0;
+		if (strokeBBox.y > textBBox.y + textBBox.height) {
+			// Stroke is below text
+			dy = strokeBBox.y - (textBBox.y + textBBox.height);
+		} else if (textBBox.y > strokeBBox.y + strokeBBox.height) {
+			// Text is below stroke
+			dy = textBBox.y - (strokeBBox.y + strokeBBox.height);
+		}
+
+		const distance = Math.sqrt(dx * dx + dy * dy);
+		console.log('Distance calculation:', { dx, dy, distance, textBBox, strokeBBox });
+		return distance;
 	}
 
 	// Classify stroke type (strike-through, caret, or regular drawing)
