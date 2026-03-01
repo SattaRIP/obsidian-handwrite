@@ -1692,19 +1692,27 @@ class CalligraphyCanvasView extends ItemView {
 
 	// Check if a completed stroke is a gesture (strike-through or caret)
 	checkGestureStroke(stroke) {
+		console.log('checkGestureStroke called, stroke points:', stroke.points.length);
+
 		// Find nearest text object
 		const nearestText = this.findNearestTextObject(stroke);
 
+		console.log('Nearest text:', nearestText ? nearestText.textObj.text : 'none', 'distance:', nearestText?.distance);
+
 		if (!nearestText || nearestText.distance > this.PROXIMITY_THRESHOLD) {
+			console.log('Not near text (threshold:', this.PROXIMITY_THRESHOLD, ')');
 			return; // Not near any text
 		}
 
 		// Classify the stroke
 		const classification = this.classifyStroke(stroke, nearestText.textObj);
+		console.log('Classification:', classification);
 
 		if (classification.type === 'strike-through') {
-			console.log('Strike-through detected!', classification);
+			console.log('✅ Strike-through detected!', classification);
 			this.handleStrikeThrough(stroke, nearestText.textObj, classification);
+		} else {
+			console.log('Not a strike-through gesture');
 		}
 		// Future: handle caret gestures here
 	}
@@ -1810,6 +1818,14 @@ class CalligraphyCanvasView extends ItemView {
 		// 3. Wide (aspect ratio > 3)
 		// 4. Intersects text vertically
 		const aspectRatio = bbox.width / Math.max(bbox.height, 1);
+
+		console.log('Classification details:', {
+			linearity: linearity.toFixed(2),
+			isHorizontal,
+			aspectRatio: aspectRatio.toFixed(2),
+			intersects,
+			angle: (angle * 180 / Math.PI).toFixed(1) + '°'
+		});
 
 		if (linearity > 0.7 && isHorizontal && aspectRatio > 3 && intersects) {
 			// Find affected words
