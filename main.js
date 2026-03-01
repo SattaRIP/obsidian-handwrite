@@ -1926,6 +1926,16 @@ class CalligraphyCanvasView extends ItemView {
 
 		// Stroke should be within text vertical bounds
 		const strokeY = strokeBBox.y + strokeBBox.height / 2;
+
+		console.log('Intersection check:', {
+			textTop,
+			textBottom,
+			strokeY,
+			textY: textObj.y,
+			lineHeight: layout.lineHeight,
+			intersects: strokeY >= textTop && strokeY <= textBottom
+		});
+
 		return strokeY >= textTop && strokeY <= textBottom;
 	}
 
