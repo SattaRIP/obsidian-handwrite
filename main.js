@@ -2131,8 +2131,8 @@ class CalligraphyCanvasView extends ItemView {
 			}
 
 			items.push(
-				{ label: 'Copy', action: () => this.copyTextObject(this.selectedTextIndex) },
-				{ label: 'Cut', action: () => this.cutTextObject(this.selectedTextIndex) },
+				{ label: 'Copy', action: async () => await this.copyTextObject(this.selectedTextIndex) },
+				{ label: 'Cut', action: async () => await this.cutTextObject(this.selectedTextIndex) },
 				{ label: 'Duplicate', action: () => this.duplicateSelectedObject() },
 				{ label: 'Delete', action: () => this.deleteSelectedObject() },
 				{ separator: true },
@@ -2156,7 +2156,7 @@ class CalligraphyCanvasView extends ItemView {
 		// Always show paste if clipboard has content
 		items.push(
 			{ separator: hasSelection },
-			{ label: 'Paste', action: () => this.pasteTextAtPosition(canvasX, canvasY) }
+			{ label: 'Paste', action: async () => await this.pasteTextAtPosition(canvasX, canvasY) }
 		);
 
 		// Build menu
@@ -2227,7 +2227,9 @@ class CalligraphyCanvasView extends ItemView {
 
 	async pasteTextAtPosition(x, y) {
 		try {
+			console.log('pasteTextAtPosition called at:', x, y);
 			const text = await navigator.clipboard.readText();
+			console.log('Clipboard text:', text);
 			if (text) {
 				const textObj = {
 					text: text,
@@ -2240,10 +2242,13 @@ class CalligraphyCanvasView extends ItemView {
 				this.renderTextObjects();
 				this.saveState();
 				new Notice('Text pasted onto canvas');
+			} else {
+				console.log('Clipboard was empty');
+				new Notice('Clipboard is empty');
 			}
 		} catch (error) {
-			console.error('Paste failed:', error);
-			new Notice('No text found in clipboard');
+			console.error('Paste failed with error:', error);
+			new Notice(`Paste failed: ${error.message}`);
 		}
 	}
 
