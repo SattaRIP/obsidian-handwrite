@@ -2168,8 +2168,8 @@ class CalligraphyCanvasView extends ItemView {
 					text: item.label,
 					cls: 'handwrite-context-menu-item'
 				});
-				menuItem.addEventListener('click', () => {
-					item.action();
+				menuItem.addEventListener('click', async () => {
+					await item.action();
 					this.hideContextMenu();
 				});
 			}
@@ -2234,16 +2234,16 @@ class CalligraphyCanvasView extends ItemView {
 					x: x,
 					y: y,
 					fontSize: this.fontSize,
-					color: this.penColor
+					color: this.isDarkMode ? '#cccccc' : '#555555'
 				};
 				this.textObjects.push(textObj);
 				this.renderTextObjects();
 				this.saveState();
-				new Notice('Text pasted');
+				new Notice('Text pasted onto canvas');
 			}
 		} catch (error) {
 			console.error('Paste failed:', error);
-			new Notice('Failed to paste text');
+			new Notice('No text found in clipboard');
 		}
 	}
 
